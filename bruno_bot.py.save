@@ -1,0 +1,278 @@
+# ==========================================
+# BRUNO BOT v7 PRO DEFINITIVO
+# estável + score + gestão + decisões claras
+# ==========================================
+
+import requests, time, json, os, ccxt, math
+
+# =========================
+# CONFIG
+# =========================
+
+TOKEN = "
+CHAT_ID = "COLE_SEU_CHAT_ID"
+TIMEFRAME = "2h"
+
+POSITIONS_FILE = "positions.json"
+OFFSET_FILE = "offset.txt"
+
+exchange = ccxt.binance()
+
+
+# =========================
+# TELEGRAM
+# =========================
+
+def send(msg):
+    requests.post(
+        f"https://api.telegram.org/bot{TOKEN}/sendMessage",
+        data={"chat_id": CHAT_ID, "text": msg}
+    )
+
+
+# =========================
+# OFFSET (anti replay)
+# =========================
+
+def load_offset():
+    if os.path.exists(OFFSET_FILE):
+        return int(open(OFFSET_FILE).read())
+    return None
+
+def save_offset(x):
+    with open(OFFSET_FILE,"w") as f:
+        f.write(str(x))
+
+last_id = load_offset()
+
+# ignora histórico antigo no primeiro start
+if last_id is None:
+    try:
+        r = requests.get(f"https://api.telegram.org/bot{TOKEN}/getUpdates").json()
+        if "result" in r and r["result"]:
+            last_id = r["result"][-1]["update_id"]
+            save_offset(last_id)
+    except:
+        pass
+
+
+# =========================
+# POSITIONS STORAGE
+# =========================
+
+def load_positions():
+    if os.path.exists(POSITIONS_FILE):
+        return json.load(open(POSITIONS_FILE))
+    return []
+
+def save_positions(p):
+    json.dump(p, open(POSITIONS_FILE,"w"), indent=2)
+
+
+# =========================
+# HELPERS
+# =========================
+
+def norm(s):
+    s=s.upper().replace("/","")
+    return s[:-4]+"/USDT"
+
+
+def score_text(s):
+    if s>=8: return "🟢 FORTE"
+    if s>=6: return "🟡 BOM"
+    if s>=4: return "🟠 MÉDIO"
+    return "🔴 FRACO"
+
+
+# =========================
+# ANALISE COMPLETA
+# =========================
+
+def analyze(symbol, side):
+
+    try:
+        ohlc = exchange.fetch_ohlcv(symbol, TIMEFRAME, limit=300)
+    except:
+        send("❌ símbolo inválido")
+        return
+
+    closes=[x[4] for x in ohlc]
+    highs=[x[2] for x in ohlc]
+    lows =[x[3] for x in ohlc]
+
+    price=closes[-1]
+
+    sma50=sum(closes[-50:])/50
+    sma200=sum(closes[-200:])/200
+    high10=max(highs[-10:])
+    low10=min(lows[-10:])
+
+    score=0
+
+    if side=="long":
+        if price>sma200: score+=3
+        if price>sma50: score+=1
+        if price>high10: score+=2
+    else:
+        if price<sma200: score+=3
+        if price<sma50: score+=1
+        if price<low10: score+=2
+
+    atr=max(highs[-14:])-min(lows[-14:])
+
+    stop = price-1.5*atr if side=="long" else price+1.5*atr
+    alvo = price+3*atr if side=="long" else price-3*atr
+
+    rr=abs(alvo-price)/abs(price-stop)
+
+    # ===== decisão BURRO-PROOF =====
+    if score>=8 and rr>=2:
+        action="👉 ENTRAR FORTE AGORA"
+    elif score>=6 and rr>=2:
+        action="👉 ENTRAR PARCIAL"
+    elif score>=6:
+        action="👉 ESPERAR MELHOR PONTO"
+    else:
+        action="👉 NÃO OPERAR"
+
+    send(
+f"""📊 {symbol} {side.upper()}
+
+Score: {score}/10 {score_text(score)}
+Entrada: {round(price,5)}
+Stop: {round(stop,5)}
+Alvo: {round(alvo,5)}
+R:R: {round(rr,2)}
+
+AÇÃO: {action}"""
+    )
+
+
+# =========================
+# GESTÃO POSIÇÕES (DECISÃO CLARA)
+# =========================
+
+def check_positions():
+
+    p=load_positions()
+
+    if not p:
+        send("Sem posições.")
+        return
+
+    out="📊 GESTÃO PROFISSIONAL\n\n"
+
+    for pos in p:
+
+        sym=pos["symbol"]
+        side=pos["side"]
+        entry=float(pos["entry"])
+        size=float(pos.get("size",0))
+        lev=float(pos.get("lev",1))
+
+        price=exchange.fetch_ticker(sym)["last"]
+
+        pnl=(price-entry)/entry
+        if side=="short": pnl=-pnl
+
+        usd=pnl*size*lev
+
+        # ===== decisão automática =====
+
+        if usd>0:
+            action=f"👉 REALIZAR 30% (~${round(size*0.3,2)})"
+            motivo="proteger lucro"
+
+        elif pnl>-0.03:
+            action="👉 NÃO FAZER NADA"
+            motivo="mercado lateral"
+
+        elif pnl>-0.08:
+            add=round(size*0.3,2)
+            action=f"👉 AUMENTAR +${add}"
+            motivo="melhorar preço médio"
+
+        else:
+            action="👉 NÃO AUMENTAR (risco alto)"
+            motivo="queda forte"
+
+        out+=f"""{sym}
+PnL: {round(pnl*100,2)}% (${round(usd,2)})
+
+{action}
+Motivo: {motivo}
+
+----------------
+"""
+
+    send(out)
+
+
+# =========================
+# TELEGRAM COMMANDS
+# =========================
+
+def check_telegram():
+
+    global last_id
+
+    r=requests.get(
+        f"https://api.telegram.org/bot{TOKEN}/getUpdates",
+        params={"offset":last_id+1 if last_id else None}
+    ).json()
+
+    if "result" not in r:
+        return
+
+    for u in r["result"]:
+
+        last_id=u["update_id"]
+        save_offset(last_id)
+
+        txt=u.get("message",{}).get("text","")
+        parts=txt.split()
+
+        if not parts: continue
+
+        try:
+
+            cmd=parts[0]
+
+            if cmd=="/add" and len(parts)==6:
+                _,s,sd,e,sz,l=parts
+                p=load_positions()
+                p.append({"symbol":norm(s),"side":sd,"entry":e,"size":sz,"lev":l})
+                save_positions(p)
+                send("✅ posição adicionada")
+
+            elif cmd=="/remove" and len(parts)==2:
+                sym=norm(parts[1])
+                p=[x for x in load_positions() if x["symbol"]!=sym]
+                save_positions(p)
+                send("❌ removida")
+
+            elif cmd=="/posicoes":
+                check_positions()
+
+            elif cmd=="/check" and len(parts)>=3:
+                _,s,sd=parts[:3]
+                analyze(norm(s),sd)
+
+            elif cmd=="/help":
+                send("/add /remove /check /posicoes")
+
+        except Exception as e:
+            send(f"Erro: {e}")
+
+
+# =========================
+# LOOP
+# =========================
+
+send("🚀 Bruno Bot v7 PRO online")
+
+while True:
+    check_telegram()
+    time.sleep(3)
+

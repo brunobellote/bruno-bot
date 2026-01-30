@@ -1,0 +1,93 @@
+[
+  {
+    "symbol": "XRPUSDT",
+    "side": "long",
+    "entry": 1.9476,
+    "size": 633.71,
+    "lev": 75.0
+  },
+  {
+    "symbol": "ZECUSDT",
+    "side": "long",
+    "entry": 406.56,
+    "size": 687.35,
+    "lev": 50.0
+  },
+  {
+    "symbol": "DYDXUSDT",
+    "side": "long",
+    "entry": 0.216,
+    "size": 199.14,
+    "lev": 50.0
+  },
+  {
+    "symbol": "XRPUSDT",
+    "side": "long",
+    "entry": 1.9476,
+    "size": 633.71,
+    "lev": 75.0
+  },
+  {
+    "symbol": "ZECUSDT",
+    "side": "long",
+    "entry": 406.56,
+    "size": 687.35,
+    "lev": 50.0
+  },
+  {
+    "symbol": "XTZUSDT",
+    "side": "long",
+    "entry": 0.63,
+    "size": 180.92,
+    "lev": 45.0
+  },
+  {
+    "symbol": "DYDXUSDT",
+    "side": "long",
+    "entry": 0.216,
+    "size": 199.14,
+    "lev": 50.0
+  },
+  {
+    "symbol": "NEWT/USDT",
+    "side": "long",
+    "entry": 0.1037,
+    "size": 1202.22,
+    "lev": 50.0
+  },
+  {
+    "symbol": "XRP/USDT",
+    "side": "long",
+    "entry": 1.9476,
+    "size": 633.71,
+    "lev": 75.0
+  },
+  {
+    "symbol": "ZEC/USDT",
+    "side": "long",
+    "entry": 406.56,
+    "size": 687.35,
+    "lev": 50.0
+  },
+  {
+    "symbol": "XTZ/USDT",
+    "side": "long",
+    "entry": 0.63,
+    "size": 180.92,
+    "lev": 45.0
+  },
+  {
+    "symbol": "DYDX/USDT",
+    "side": "long",
+    "entry": 0.216,
+    "size": 199.14,
+    "lev": 50.0
+  },
+  {
+    "symbol": "MASK/USDT",
+    "side": "short",
+    "entry": 0.6103,
+    "size": 43.38,
+    "lev": 50.0
+  }
+]
