@@ -15,8 +15,8 @@ urllib3.disable_warnings()
 # CONFIG
 # =========================
 
-TOKEN = "SEU_TOKEN_AQUI"
-CHAT_ID = "SEU_CHAT_ID_AQUI"
+TOKEN = "8004229528:AAGgqLNmXhslcYmhULVN40Q3X-zvj6Wd-6A"
+CHAT_ID = "8335409471"
 TIMEFRAME = "2h"
 
 POSITIONS_FILE = "positions.json"
@@ -49,14 +49,14 @@ def tg_post(url, **kw):
 
 def send(msg):
     try:
-        tg_post(
+        import requests
+        requests.post(
             f"https://api.telegram.org/bot{TOKEN}/sendMessage",
-            data={"chat_id": CHAT_ID, "text": msg}
+            data={"chat_id": CHAT_ID, "text": msg},
+            timeout=10
         )
-    except:
-        pass
-
-
+    except Exception as e:
+        print("Telegram erro:", e)
 # =========================
 # OFFSET
 # =========================
