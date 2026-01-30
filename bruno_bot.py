@@ -22,7 +22,7 @@ TIMEFRAME = "2h"
 POSITIONS_FILE = "positions.json"
 OFFSET_FILE = "offset.txt"
 
-exchange = ccxt.binance()
+exchange = ccxt.bybit()
 
 # =========================
 # SESSION ESTÁVEL (MAC SAFE)
