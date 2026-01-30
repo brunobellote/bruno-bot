@@ -100,11 +100,11 @@ def norm(s):
 
 def analyze(symbol):
 
-    try:
-        ohlc = exchange.fetch_ohlcv(symbol, TIMEFRAME, limit=200)
-    except:
-        send("❌ símbolo inválido")
-        return
+try:
+    ohlc = exchange.fetch_ohlcv(symbol, TIMEFRAME, limit=200)
+except Exception:
+    send("⚠️ Exchange bloqueada no servidor (Railway). Rode local ou VPS Brasil.")
+    return
 
     o = [x[1] for x in ohlc]
     h = [x[2] for x in ohlc]
@@ -155,31 +155,36 @@ Alvo: {round(target,5)}
 
 def check_positions():
 
-    p=load_positions()
+    p = load_positions()
 
     if not p:
         send("Sem posições")
         return
 
-    out="📊 POSIÇÕES\n\n"
+    out = "📊 POSIÇÕES\n\n"
 
     for pos in p:
 
-        sym=pos["symbol"]
-        entry=float(pos["entry"])
-        size=float(pos["size"])
-        lev=float(pos["lev"])
-        side=pos["side"]
+        try:
+            sym = pos["symbol"]
+            entry = float(pos["entry"])
+            size = float(pos["size"])
+            lev = float(pos["lev"])
+            side = pos["side"]
 
-        price=exchange.fetch_ticker(sym)["last"]
+            price = exchange.fetch_ticker(sym)["last"]
 
-        pnl=(price-entry)/entry
-        if side=="SHORT":
-            pnl=-pnl
+            pnl = (price-entry)/entry
+            if side == "SHORT":
+                pnl = -pnl
 
-        usd=pnl*size*lev
+            usd = pnl*size*lev
 
-        out+=f"{sym} | {round(pnl*100,2)}% (${round(usd,2)})\n"
+            out += f"{sym} | {round(pnl*100,2)}% (${round(usd,2)})\n"
+
+        except Exception as e:
+            print("Erro exchange:", e)
+            out += f"{sym} | ⚠️ preço indisponível (bloqueado)\n"
 
     send(out)
 
